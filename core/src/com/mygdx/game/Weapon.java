@@ -11,13 +11,12 @@ import java.util.ArrayList;
     private ArrayList<Cartridges> cartridges;
     private final int magazine;
     private final int time;
-    private final float speed;
     private final int recharge;
     private final String name;
     private final float distance;
     private final int price;
 
-    Weapon(Sprite weapon, int magazine, float distance, int time, int recharge, float speed, String name, int price, float x, float y) {
+    Weapon(Sprite weapon, int magazine, float distance, int time, int recharge, String name, int price, float x, float y) {
         this.weapon = weapon;
         this.weapon.setX(x);
         this.weapon.setY(y);
@@ -27,7 +26,6 @@ import java.util.ArrayList;
         this.time = time;
         this.price = price;
         this.distance = distance;
-        this.speed = speed;
         cartridges = new ArrayList<>();
     }
 
@@ -68,9 +66,6 @@ import java.util.ArrayList;
         return recharge;
     }
 
-    float getSpeed() {
-        return speed;
-    }
 
     String getName() {
         return name;

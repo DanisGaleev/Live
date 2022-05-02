@@ -3,52 +3,62 @@ package com.mygdx.game;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 
 
+import com.badlogic.gdx.utils.Json;
+import com.badlogic.gdx.utils.JsonWriter;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.TimeUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 
 
 public class Battle implements Screen {
-    private ArrayList<Zombi> zombisRigth;
-    private ArrayList<Zombi> zombisLeft;
+    private ImageButton pause;
+    private ArrayList<Zombi> zombis;
     private SpriteBatch batch;
     private Texture map;
     private OrthographicCamera camera;
-    private ArrayList<Soldat> troop;
+    static ArrayList<Soldat> troop;
     private Game game;
-    private int money = 0;
+    public static int money = 0;
     private boolean direction = true;
     private long zombi_time;
-    private int recharge;
+    private Location loc;
     private BitmapFont bitmapFont;
     private Stage stage;
     private ArrayList<ImageButton> points;
 
     Battle(Game game) {
-        map = new Texture("map.png");
+        Json json = new Json();
+        json.setOutputType(JsonWriter.OutputType.json);
+        json.setElementType(Location.class, "walls", Rectangle.class);
+        loc = json.fromJson(Location.class, Gdx.files.internal("Locations\\Mission1.json"));
+        map = new Texture(loc.getLocName());
         batch = new SpriteBatch();
         this.game = game;
         stage = new Stage(new ScreenViewport());
         points = new ArrayList<>();
-        zombisRigth = new ArrayList<>();
-        zombisLeft = new ArrayList<>();
+        zombis = new ArrayList<>();
         bitmapFont = new BitmapFont();
         bitmapFont.setColor(0, 0, 0, 1);
         camera = new OrthographicCamera();
@@ -66,127 +76,20 @@ public class Battle implements Screen {
         createButton(new ImageButton(skin.getDrawable("o")), 640, 355);
         createButton(new ImageButton(skin.getDrawable("o")), 370, 465);
         troop = new ArrayList<>();
-        troop.add(new Soldat(new ImageButton(skin.getDrawable("person")), new Rectangle(), new ImageButton(skin.getDrawable("Uzi")), false, TimeUtils.millis(), TimeUtils.millis(), new Vector2(250, 80)));
-        troop.get(0).setWeapon(new Weapon(new Sprite(new Texture("weapon.png")), 8, 300f, 50, 3000, 1000f, "TT", 20, 250, 100));
-        recharge = (troop.get(0).getWeapon().getMagazine());
-        stage.addActor(troop.get(0).getSoldat());
-        stage.addActor(troop.get(0).getUpgrate());
+        //  zombis.add(new Zombi(new Sprite(new Texture("z.png")), new Rectangle(), new Vector2(30, 80)));
+        //zombis.add(new Zombi(new Sprite(new Texture("z.png")), new Rectangle(), new Vector2(1200, 80)));
+        troop.add(new Soldat(points, stage, 170, 80));
+        troop.get(0).setWeapon(new Weapon(new Sprite(new Texture("weapon.png")), 8, 400, 50, 3000, "TT", 20, 170, 100));
+        troop.add(new Soldat(points, stage, 195, 80));
+        troop.get(1).setWeapon(new Weapon(new Sprite(new Texture("weapon.png")), 8, 400, 50, 3000, "TT", 20, 250, 100));
+        troop.add(new Soldat(points, stage, 220, 80));
+        troop.get(2).setWeapon(new Weapon(new Sprite(new Texture("weapon.png")), 8, 400, 50, 3000, "TT", 20, 170, 100));
+        troop.add(new Soldat(points, stage, 250, 80));
+        troop.get(3).setWeapon(new Weapon(new Sprite(new Texture("weapon.png")), 8, 800, 50, 3000, "TT", 20, 250, 100));
     }
 
     @Override
     public void show() {
-        troop.get(0).getSoldat().addListener(new InputListener() {
-            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                for (int j = 0; j < points.size(); j++) {
-                    points.get(j).setVisible(true);
-                }
-                troop.get(0).setIstouch(true);
-                troop.get(0).getUpgrate().setVisible(true);
-                troop.get(0).getUpgrate().addListener(new InputListener() {
-                    public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                        if (money >= troop.get(0).getWeapon().getPrice() && troop.get(0).getWeapon().getName().equals("TT")) {
-                            money -= troop.get(0).getWeapon().getPrice();
-                            troop.get(0).setWeapon(new Weapon(new Sprite(new Texture("weapon.png")), 20, 300f, 70, 2000, 1000f, "Uzi", 100, troop.get(0).getX(), 100));
-                        } else if (money >= troop.get(0).getWeapon().getPrice() && troop.get(0).getWeapon().getName().equals("Uzi")) {
-                            money -= troop.get(0).getWeapon().getPrice();
-                            troop.get(0).setWeapon(new Weapon(new Sprite(new Texture("weapon.png")), 8, 200f, 200, 5000, 1000f, "Saiga", 200, troop.get(0).getX(), 100));
-                        } else if (money >= troop.get(0).getWeapon().getPrice() && troop.get(0).getWeapon().getName().equals("Saiga")) {
-                            money -= troop.get(0).getWeapon().getPrice();
-                            troop.get(0).setWeapon(new Weapon(new Sprite(new Texture("weapon.png")), 30, 400f, 50, 3500, 1000f, "AK47", 0, troop.get(0).getX(), 100));
-                            troop.get(0).getUpgrate().setVisible(false);
-                        }
-                        return true;
-                    }
-
-                    public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
-                        for (int j = 0; j < points.size(); j++) {
-                            points.get(j).setVisible(false);
-                        }
-                        troop.get(0).getUpgrate().setVisible(false);
-                        troop.get(0).setIstouch(false);
-                    }
-                });
-
-                points.get(0).addListener(new InputListener() {
-                    public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                        return true;
-                    }
-
-                    public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
-                        for (int k = 0; k < points.size(); k++) {
-                            points.get(k).setVisible(false);
-                        }
-                        troop.get(0).setFrom(new Vector2(troop.get(0).getPosition()));
-                        troop.get(0).setTo(new Vector2(points.get(0).getX(), points.get(0).getY() - 20));
-                        troop.get(0).getUpgrate().setVisible(false);
-                        troop.get(0).setIstouch(false);
-                    }
-                });
-
-                points.get(1).addListener(new InputListener() {
-                    public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                        return true;
-                    }
-
-                    public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
-                        for (int k = 0; k < points.size(); k++) {
-                            points.get(k).setVisible(false);
-                        }
-                        troop.get(0).setFrom(new Vector2(troop.get(0).getPosition()));
-                        troop.get(0).setTo(new Vector2(points.get(1).getX(), points.get(1).getY() - 20));
-                        troop.get(0).getUpgrate().setVisible(false);
-                        troop.get(0).setIstouch(false);
-                    }
-                });
-                points.get(2).addListener(new InputListener() {
-                    public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                        return true;
-                    }
-
-                    public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
-                        for (int k = 0; k < points.size(); k++) {
-                            points.get(k).setVisible(false);
-                        }
-                        troop.get(0).setFrom(new Vector2(troop.get(0).getPosition()));
-                        troop.get(0).setTo(new Vector2(points.get(2).getX(), points.get(2).getY() - 20));
-                        troop.get(0).getUpgrate().setVisible(false);
-                        troop.get(0).setIstouch(false);
-                    }
-                });
-                points.get(3).addListener(new InputListener() {
-                    public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                        return true;
-                    }
-
-                    public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
-                        for (int k = 0; k < points.size(); k++) {
-                            points.get(k).setVisible(false);
-                        }
-                        troop.get(0).setFrom(new Vector2(troop.get(0).getPosition()));
-                        troop.get(0).setTo(new Vector2(points.get(3).getX(), points.get(3).getY() - 20));
-                        troop.get(0).getUpgrate().setVisible(false);
-                        troop.get(0).setIstouch(false);
-                    }
-                });
-                points.get(4).addListener(new InputListener() {
-                    public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                        return true;
-                    }
-
-                    public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
-                        for (int k = 0; k < points.size(); k++) {
-                            points.get(k).setVisible(false);
-                        }
-                        troop.get(0).setFrom(new Vector2(troop.get(0).getPosition()));
-                        troop.get(0).setTo(new Vector2(points.get(4).getX(), points.get(4).getY() - 20));
-                        troop.get(0).getUpgrate().setVisible(false);
-                        troop.get(0).setIstouch(false);
-                    }
-                });
-                return true;
-            }
-        });
-        //zombiSpawn(Gdx.graphics.getWidth());
         Gdx.input.setInputProcessor(stage);
     }
 
@@ -194,44 +97,37 @@ public class Battle implements Screen {
     public void render(float delta) {
         camera.update();
         ScreenUtils.clear(1, 1, 1, 1);
-        batch.setProjectionMatrix(camera.combined);
         batch.begin();
-
-
         batch.draw(map, 360, 80, map.getWidth() / 4, map.getHeight() / 4);
 
-
-        bitmapFont.draw(batch, "Your money = " + money + " $", 50, Gdx.graphics.getHeight() - 50);
+        bitmapFont.draw(batch, Gdx.graphics.getFramesPerSecond() + "", 50, Gdx.graphics.getHeight() - 50);//"Your money = " + money + " $", 50, Gdx.graphics.getHeight() - 50);
 
         for (int i = 0; i < troop.size(); i++) {
             troop.get(i).getWeapon().draw(batch);
         }
-        for (int i = 0; i < zombisRigth.size(); i++) {
-            zombisRigth.get(i).draw(batch);
+        for (Zombi zombi : zombis) {
+            zombi.draw(batch);
         }
-        for (int i = 0; i < zombisLeft.size(); i++) {
-            zombisLeft.get(i).draw(batch);
-        }
-
+        batch.end();
         stage.act();
         stage.draw();
 
-        batch.end();
-
         if (troop.size() > 0) {
             move_all();
-            //overlaps_all();
+            overlaps_all();
             distance_all();
+            soldatAim();
             //cartridge_fly_recharge();
 
-           /* if (TimeUtils.millis() - zombi_time > 500) {
+            if (TimeUtils.millis() - zombi_time > 500) {
                 if (direction)
                     zombiSpawn(-20);
                 else
                     zombiSpawn(Gdx.graphics.getWidth());
                 direction = !direction;
             }
-            */
+
+
         } else {
             game.setScreen(new Lose(game));
         }
@@ -259,112 +155,168 @@ public class Battle implements Screen {
     @Override
     public void dispose() {
         batch.dispose();
+        stage.dispose();
     }
 
-    private void cartridgesMake(float x, float y, Vector2 direction) {
-        for (int i = 0; i < troop.size(); i++) {
-            troop.get(i).getWeapon().getCartridges().add(new Cartridges(new Sprite(new Texture("cartridge.png")), new Rectangle(), new Vector2(x, y), direction));
+    public void soldatAim() {
+        for (Soldat soldat : troop) {
+            if (TimeUtils.millis() - soldat.getTime() > soldat.getWeapon().getRecharge()) {
+                soldat.setCanshoot(true);
+                soldat.setRecharge(soldat.getWeapon().getMagazine());
+                soldat.setTime(TimeUtils.millis());
+            }
+            if (soldat.getCanshoot()) {
+                if (soldat.getRecharge() > 0) {
+                    if (!zombis.isEmpty()) {
+                        int id = soldat.fitstTarget(loc.getWalls(), zombis);
+                        if (id != -1) {
+                            if (TimeUtils.millis() - soldat.getRechargeT() > soldat.getWeapon().getTime()) {
+                                soldat.setRecharge(soldat.getRecharge() - 1);
+                                Vector2 dir = new Vector2(zombis.get(id).getX(), zombis.get(id).getY() + 30).sub(soldat.getX() + soldat.img.getWidth(), soldat.getY() + 30).nor();
+                                cartridgesMake(soldat, soldat.getX() + soldat.img.getWidth(), soldat.getY() + 30, dir);
+                                soldat.setRechargeT(TimeUtils.millis());
+                            }
+                        }
+                    }
+                } else {
+                    soldat.setTime(TimeUtils.millis());
+                    soldat.setCanshoot(false);
+                }
+            }
         }
+    }
+
+    private void cartridgesMake(Soldat soldat, float x, float y, Vector2 direction) {
+        soldat.getWeapon().getCartridges().add(new Cartridges(new Sprite(new Texture("cartridge.png")), new Rectangle(), new Vector2(x, y), direction));
     }
 
     private void zombiSpawn(float spawnX) {
+        zombis.add(new Zombi(new Sprite(new Texture("z.png")), new Rectangle(), new Vector2(spawnX, 80)));
         if (spawnX < 0)
-            zombisLeft.add(new Zombi(new Sprite(new Texture("z.png")), new Rectangle(), new Vector2(spawnX, (float) 80.0)));
+            zombis.get(zombis.size() - 1).setDirection(new Vector2(1, 0));
         else
-            zombisRigth.add(new Zombi(new Sprite(new Texture("z.png")), new Rectangle(), new Vector2(spawnX, (float) 80.0)));
+            zombis.get(zombis.size() - 1).setDirection(new Vector2(-1, 0));
         zombi_time = TimeUtils.millis();
+
     }
 
-    private void createButton(ImageButton button, float x, float y) {
-        button.setX(x);
-        button.setY(y);
+    private void createButton(ImageButton button, final float X, final float Y) {
+        button.setX(X);
+        button.setY(Y);
         button.setVisible(false);
         points.add(button);
         stage.addActor(button);
+        button.addListener(new InputListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                if (pointer == 0) {
+                    for (Soldat soldat : troop) {
+                        if (soldat.isTouched()) {
+                            soldat.setTouched(false);
+                            soldat.setTo(new Vector2(X, Y));
+                            soldat.setMoving(true);
+                            soldat.getUpg().setVisible(false);
+                            for (int i = 0; i < points.size(); i++) {
+                                points.get(i).setVisible(false);
+                            }
+                            break;
+                        }
+                    }
+                }
+                return true;
+            }
+        });
     }
 
     private void move_all() {
-        System.out.println(troop.get(0).getPosition());
-        if (troop.get(0).getTo().y > 105 && troop.get(0).getY() < 105) {
-            if (350 > troop.get(0).getPosition().x)
-                troop.get(0).move(new Vector2(1, 0), 60);
-            else if (355 < troop.get(0).getPosition().x)
-                troop.get(0).move(new Vector2(-1, 0), 60);
-            else
-                troop.get(0).move(new Vector2(0, 1), 60f);
-        } else if (troop.get(0).getTo().y > 211 && troop.get(0).getY() < 211) {
-            if (450 > troop.get(0).getPosition().x)
-                troop.get(0).move(new Vector2(1, 0), 60);
-            else if (455 < troop.get(0).getPosition().x)
-                troop.get(0).move(new Vector2(-1, 0), 60);
-            else
-                troop.get(0).move(new Vector2(0, 1), 60f);
-        } else if (troop.get(0).getTo().y > 330 && troop.get(0).getY() < 330) {
-            if (609 > troop.get(0).getPosition().x)
-                troop.get(0).move(new Vector2(1, 0), 60);
-            else if (614 < troop.get(0).getPosition().x)
-                troop.get(0).move(new Vector2(-1, 0), 60);
-            else
-                troop.get(0).move(new Vector2(0, 1), 60f);
-        } else if (troop.get(0).getTo().y > 440 && troop.get(0).getY() < 440) {
-            if (413 > troop.get(0).getPosition().x)
-                troop.get(0).move(new Vector2(1, 0), 60);
-            else if (418 < troop.get(0).getPosition().x)
-                troop.get(0).move(new Vector2(-1, 0), 60);
-            else
-                troop.get(0).move(new Vector2(0, 1), 60f);
-        } else if (troop.get(0).getY() > 330 && troop.get(0).getY() > troop.get(0).getTo().y) {
-            if (413 > troop.get(0).getPosition().x)
-                troop.get(0).move(new Vector2(1, 0), 60);
-            else if (418 < troop.get(0).getPosition().x)
-                troop.get(0).move(new Vector2(-1, 0), 60);
-            else
-                troop.get(0).move(new Vector2(0, -1), 60f);
-        } else if (troop.get(0).getY() > 211 && troop.get(0).getY() > troop.get(0).getTo().y) {
-            if (609 > troop.get(0).getPosition().x)
-                troop.get(0).move(new Vector2(1, 0), 60);
-            else if (614 < troop.get(0).getPosition().x)
-                troop.get(0).move(new Vector2(-1, 0), 60);
-            else
-                troop.get(0).move(new Vector2(0, -1), 60f);
-        } else if (troop.get(0).getY() > 105 && troop.get(0).getY() > troop.get(0).getTo().y) {
-            if (450 > troop.get(0).getPosition().x)
-                troop.get(0).move(new Vector2(1, 0), 60);
-            else if (455 < troop.get(0).getPosition().x)
-                troop.get(0).move(new Vector2(-1, 0), 60);
-            else
-                troop.get(0).move(new Vector2(0, -1), 60f);
-        } else if (troop.get(0).getY() > 75 && troop.get(0).getY() > troop.get(0).getTo().y) {
-            if (350 > troop.get(0).getPosition().x)
-                troop.get(0).move(new Vector2(1, 0), 60);
-            else if (355 < troop.get(0).getPosition().x)
-                troop.get(0).move(new Vector2(-1, 0), 60);
-            else
-                troop.get(0).move(new Vector2(0, -1), 60f);
-        } else {
-            if (troop.get(0).getTo().x > troop.get(0).getPosition().x)
-                troop.get(0).move(new Vector2(1, 0), 60);
-            if (troop.get(0).getTo().x < troop.get(0).getPosition().x)
-                troop.get(0).move(new Vector2(-1, 0), 60);
+        for (Soldat soldat : troop) {
+            if (soldat.getActions().isEmpty()) {
+                if (soldat.getTo().y >= 105 && soldat.getY() < 105) {
+                    SequenceAction se = new SequenceAction();
+                    se.addAction(Actions.moveTo(355, soldat.getY(), 1));
+                    se.addAction(Actions.moveTo(355, 105, 1));
+                    soldat.addAction(se);
+                } else if (soldat.getTo().y >= 215 && soldat.getY() < 215) {
+                    SequenceAction se = new SequenceAction();
+                    se.addAction(Actions.moveTo(450, soldat.getY(), 1));
+                    se.addAction(Actions.moveTo(450, 215, 1));
+                    soldat.addAction(se);
+                } else if (soldat.getTo().y >= 336 && soldat.getY() < 336) {
+                    SequenceAction se = new SequenceAction();
+                    se.addAction(Actions.moveTo(609, soldat.getY(), 1));
+                    se.addAction(Actions.moveTo(609, 336, 1));
+                    soldat.addAction(se);
+                } else if (soldat.getTo().y >= 441 && soldat.getY() < 441) {
+                    SequenceAction se = new SequenceAction();
+                    se.addAction(Actions.moveTo(413, soldat.getY(), 1));
+                    se.addAction(Actions.moveTo(413, 441, 1));
+                    soldat.addAction(se);
+                } else if (soldat.getTo().y <= 355 && soldat.getY() > 336) {
+                    SequenceAction se = new SequenceAction();
+                    se.addAction(Actions.moveTo(413, soldat.getY(), 1));
+                    se.addAction(Actions.moveTo(413, 336, 1));
+                    soldat.addAction(se);
+                } else if (soldat.getTo().y <= 236 && soldat.getY() > 215) {
+                    SequenceAction se = new SequenceAction();
+                    se.addAction(Actions.moveTo(609, soldat.getY(), 1));
+                    se.addAction(Actions.moveTo(609, 215, 1));
+                    soldat.addAction(se);
+                } else if (soldat.getTo().y <= 130 && soldat.getY() > 105) {
+                    SequenceAction se = new SequenceAction();
+                    se.addAction(Actions.moveTo(450, soldat.getY(), 1));
+                    se.addAction(Actions.moveTo(450, 105, 1));
+                    soldat.addAction(se);
+                } else if (soldat.getTo().y <= 100 && soldat.getY() > 80) {
+                    SequenceAction se = new SequenceAction();
+                    se.addAction(Actions.moveTo(355, soldat.getY(), 1));
+                    se.addAction(Actions.moveTo(355, 80, 1));
+                    soldat.addAction(se);
+                } else {
+                    if (soldat.getTo().x != soldat.getX())
+                        soldat.addAction(Actions.moveTo(soldat.getTo().x, soldat.getY(), 1));
+                }
+            }
+            soldat.getWeapon().setX(soldat.getX());
+            soldat.getWeapon().setY(soldat.getY() + 20);
         }
 
-        troop.get(0).getWeapon().setX(troop.get(0).getX());
-        troop.get(0).getWeapon().setY(troop.get(0).getY() + 20);
-
-        for (Zombi zombic : zombisLeft) {
-            zombic.move(new Vector2(1, 0), 50f);
+        for (Zombi zombi : zombis) {
+            zombi.move();
         }
-        for (Zombi zombic : zombisRigth) {
-            zombic.move(new Vector2(-1, 0), 50f);
-        }
-
-        for (int j = 0; j < troop.get(0).getWeapon().getCartridges().size(); j++) {
-            troop.get(0).getWeapon().getCartridges().get(j).move(troop.get(0).getWeapon().getSpeed());
+        for (Soldat soldat : troop) {
+            for (Cartridges car : soldat.getWeapon().getCartridges()) {
+                car.move();
+            }
         }
     }
 
     private void overlaps_all() {
-        for (Iterator<Soldat> iterator = troop.iterator(); iterator.hasNext(); ) {
+        for (Soldat soldat : troop) {
+            for (Iterator<Cartridges> iterator = soldat.getWeapon().getCartridges().iterator(); iterator.hasNext(); ) {
+                Cartridges car = iterator.next();
+                for (Iterator<Zombi> iterator1 = zombis.iterator(); iterator1.hasNext();) {
+                    Zombi zombi = iterator1.next();
+                    if (zombi.getRectangle().overlaps(car.getRectangle())) {
+                        iterator.remove();
+                        iterator1.remove();
+                        break;
+                    }
+                }
+            }
+        }
+        for (Iterator<Zombi> iterator = zombis.iterator(); iterator.hasNext(); ) {
+            Zombi zombi = iterator.next();
+            for (Soldat soldat : troop) {
+                for (Iterator<Cartridges> car = soldat.getWeapon().getCartridges().iterator(); car.hasNext(); ) {
+                    Cartridges carr = car.next();
+                    if (carr.getRectangle().overlaps(zombi.getRectangle())) {
+                        iterator.remove();
+                        car.remove();
+                    }
+                }
+            }
+        }
+       /* for (Iterator<Soldat> iterator = troop.iterator(); iterator.hasNext(); ) {
             Soldat soldat = iterator.next();
             for (Zombi zombic : zombisRigth) {
                 if (soldat.getRectangle().overlaps(zombic.getRectangle())) {
@@ -396,17 +348,24 @@ public class Battle implements Screen {
                 }
             }
         }
+
+        */
     }
 
     private void distance_all() {
-        for (Iterator<Cartridges> iterator = troop.get(0).getWeapon().getCartridges().iterator(); iterator.hasNext(); ) {
-            Cartridges cartridge = iterator.next();
-            if (Math.abs(cartridge.getX() - troop.get(0).getX()) > troop.get(0).getWeapon().getDistance()) {
-                iterator.remove();
+        for (Soldat soldat : troop) {
+            for (Iterator<Cartridges> iterator = soldat.getWeapon().getCartridges().iterator(); iterator.hasNext(); ) {
+                Cartridges car = iterator.next();
+                if (car.getX() > Gdx.graphics.getWidth() + 100 || car.getX() < -100)
+                    iterator.remove();
             }
         }
-
-        for (Iterator<Zombi> iterator = zombisRigth.iterator(); iterator.hasNext(); ) {
+        for (Iterator<Zombi> iterator = zombis.iterator(); iterator.hasNext(); ) {
+            Zombi zombi = iterator.next();
+            if (zombi.getX() < -100 || zombi.getX() > Gdx.graphics.getWidth() + 100)
+                iterator.remove();
+        }
+       /* for (Iterator<Zombi> iterator = zombisRigth.iterator(); iterator.hasNext(); ) {
             Zombi zombi = iterator.next();
             if (zombi.getX() <= -zombi.getZombi().getWidth()) {
                 iterator.remove();
@@ -418,56 +377,44 @@ public class Battle implements Screen {
                 iterator.remove();
             }
         }
+
+        */
     }
 
-    private void cartridge_fly_recharge() {
-        if (TimeUtils.millis() - troop.get(0).getTime() > troop.get(0).getWeapon().getRecharge()) {
-            troop.get(0).setCanshoot(true);
-            recharge = troop.get(0).getWeapon().getMagazine();
-            troop.get(0).setTime(TimeUtils.millis());
-        }
-
-        if (troop.get(0).getCanshoot()) {
-            if (recharge > 0) {
-                if (zombisLeft.size() > 0 && zombisRigth.size() > 0) {
-                    if (troop.get(0).getPosition().x - zombisLeft.get(0).getPosition().x < troop.get(0).getWeapon().getDistance() && troop.get(0).getPosition().x - zombisLeft.get(0).getPosition().x < zombisRigth.get(0).getPosition().x - troop.get(0).getPosition().x) {
-                        if (TimeUtils.millis() - troop.get(0).getRechargeT() > troop.get(0).getWeapon().getTime()) {
-                            recharge--;
-                            System.out.println(troop.get(0).getPosition() + "   " + zombisLeft.get(0).getPosition());
-                            cartridgesMake(troop.get(0).getX(), troop.get(0).getY() + 20, troop.get(0).getPosition().cpy().sub(zombisLeft.get(0).getPosition().cpy()).nor());
-                            troop.get(0).setRechargeT(TimeUtils.millis());
-                        }
-
-                    } else if (zombisRigth.get(0).getPosition().x - troop.get(0).getPosition().x < troop.get(0).getWeapon().getDistance() && troop.get(0).getPosition().x - zombisLeft.get(0).getPosition().x > zombisRigth.get(0).getPosition().x - troop.get(0).getPosition().x) {
-
-                    }
-
-
-               /* if (zombisLeft.size() > 0 && zombisRigth.size() > 0 && (Math.abs(zombisRigth.get(0).getX() - troop.get(0).getX()) < troop.get(0).getWeapon().getDistance() || Math.abs(zombisLeft.get(0).getX() - troop.get(0).getX()) < troop.get(0).getWeapon().getDistance())) {
-                    if (Math.abs(zombisLeft.get(0).getX() - troop.get(0).getX()) > Math.abs(zombisRigth.get(0).getX() - troop.get(0).getX())) {
-                        if (TimeUtils.millis() - troop.get(0).getRechargeT() > troop.get(0).getWeapon().getTime()) {
-                            recharge--;
-                            cartridgesMake(troop.get(0).getX(), troop.get(0).getY() + 20, troop.get(0).getPosition().sub(zombisLeft.get(0).getPosition()).nor());
-                            troop.get(0).setRechargeT(TimeUtils.millis());
-                        }
-                    }
-                    if (Math.abs(zombisLeft.get(0).getX() - troop.get(0).getX()) <= Math.abs(zombisRigth.get(0).getX() - troop.get(0).getX())) {
-                        if (TimeUtils.millis() - troop.get(0).getRechargeT() > troop.get(0).getWeapon().getTime()) {
-                            recharge--;
-                            cartridgesMake(troop.get(0).getX(), troop.get(0).getY() + 20, zombisRigth.get(0).getPosition().sub(troop.get(0).getPosition()).nor());
-                            troop.get(0).setRechargeT(TimeUtils.millis());
-                        }
-                    }
-
-                */
-
-
-                }
-            } else {
-                troop.get(0).setTime(TimeUtils.millis());
-                troop.get(0).setCanshoot(false);
+   /* private void cartridge_fly_recharge() {
+        for (Soldat soldat : troop) {
+            if (TimeUtils.millis() - soldat.getTime() > soldat.getWeapon().getRecharge()) {
+                soldat.setCanshoot(true);
+                soldat.setRecharge(soldat.getWeapon().getMagazine());
+                soldat.setTime(TimeUtils.millis());
             }
 
         }
-    }
+        for (Soldat soldat : troop) {
+            if (soldat.getCanshoot()) {
+                if (soldat.getRecharge() > 0) {
+                    if (!zombis.isEmpty()) {
+                        {
+                            if (TimeUtils.millis() - troop.get(0).getRechargeT() > troop.get(0).getWeapon().getTime()) {
+                                recharge--;
+                                //System.out.println(troop.get(0).getPosition() + "   " + zombisLeft.get(0).getPosition());
+                                cartridgesMake(troop.get(0).getX(), troop.get(0).getY() + 20, troop.get(0).getPosition().cpy().sub(zombisLeft.get(0).getPosition().cpy()).nor());
+                                troop.get(0).setRechargeT(TimeUtils.millis());
+                            }
+
+                        } else
+                        if (zombisRigth.get(0).getPosition().x - troop.get(0).getPosition().x < troop.get(0).getWeapon().getDistance() && troop.get(0).getPosition().x - zombisLeft.get(0).getPosition().x > zombisRigth.get(0).getPosition().x - troop.get(0).getPosition().x) {
+
+                        }
+
+
+                    }
+                } else {
+                    troop.get(0).setTime(TimeUtils.millis());
+                    troop.get(0).setCanshoot(false);
+                }
+
+            }
+        }
+    }*/
 }

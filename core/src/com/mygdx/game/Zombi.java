@@ -10,6 +10,8 @@ class Zombi {
     private Sprite zombi;
     private Vector2 position;
     private Rectangle rectangle;
+    private Vector2 direction;
+    private static final float SPEED = 50;
 
     Zombi(Sprite zombi, Rectangle rectangle, Vector2 position) {
         this.zombi = zombi;
@@ -58,12 +60,15 @@ float getY(){
         this.position = position;
     }
 
-    void move(Vector2 direction, float speed) {
+    void move() {
         direction.nor();
-        Vector2 velocity = direction.cpy().scl(speed * Gdx.graphics.getDeltaTime());
+        Vector2 velocity = direction.cpy().scl(SPEED * Gdx.graphics.getDeltaTime());
         this.position.add(velocity);
         this.zombi.setPosition(this.position.x, this.position.y);
         this.rectangle.setPosition(this.position);
     }
 
+    public void setDirection(Vector2 direction) {
+        this.direction = direction;
+    }
 }

@@ -11,6 +11,8 @@ class Cartridges {
     private Rectangle rectangle;
     private Vector2 position;
     private final Vector2 direction;
+    private final static float SPEED = 2000;
+
     Cartridges(Sprite cartridge, Rectangle rectangle, Vector2 position, Vector2 direction) {
         this.cartridge = cartridge;
         this.rectangle = rectangle;
@@ -21,6 +23,7 @@ class Cartridges {
         this.rectangle.width = cartridge.getWidth();
         this.rectangle.height = cartridge.getHeight();
         this.direction = direction;
+        this.cartridge.setRotation(direction.angleDeg());
     }
 
     float getX() {
@@ -35,9 +38,9 @@ class Cartridges {
         cartridge.draw(batch);
     }
 
-    void move(float speed) {
+    void move() {
         direction.nor();
-        Vector2 velocity = direction.cpy().scl(speed * Gdx.graphics.getDeltaTime());
+        Vector2 velocity = direction.cpy().scl(SPEED * Gdx.graphics.getDeltaTime());
         this.position.add(velocity);
         this.cartridge.setPosition(this.position.x, this.position.y);
         this.rectangle.setPosition(this.position);
